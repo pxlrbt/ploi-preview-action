@@ -109,7 +109,7 @@ fi
 
 # --- .env --------------------------------------------------------------------
 
-current_env=$(ploi GET "$SITE/env" 2>/dev/null | jq -r '.content // empty') || current_env=
+current_env=$(site_env "$SITE_ID" 2>/dev/null) || current_env=
 current_env_value() {
   sed -n "s/^$1=//p" <<<"$current_env" | tail -n1
 }
@@ -126,11 +126,9 @@ else
   echo "::add-mask::$APP_KEY"
   echo "Creating database user $DB_NAME"
   wait_until 120 "the database" database_is_active
-  database_users="/servers/$SERVER/databases/$(find_database "$DB_NAME" | jq -r .id)/users"
-  for id in $(ploi GET "$database_users" | jq -r '.data[].id'); do
-    ploi DELETE "$database_users/$id" >/dev/null
-  done
-  ploi POST "$database_users" "$(jq -n --arg user "$DB_NAME" --arg password "$DB_PASSWORD" '{user: $user, password: $password}')" >/dev/null
+  database_id=$(find_database "$DB_NAME" | jq -r .id)
+  delete_database_users "$database_id"
+  ploi POST "/servers/$SERVER/databases/$database_id/users" "$(jq -n --arg user "$DB_NAME" --arg password "$DB_PASSWORD" '{user: $user, password: $password}')" >/dev/null
 fi
 
 env_file=$(mktemp)
@@ -177,6 +175,8 @@ elif [[ -n $SOURCE_SITE ]]; then
 else
   script=$(ploi GET "$SITE/deploy/script" | jq -r .deploy_script)
 fi
+# Previews install dev dependencies so seeders can use factories and Faker.
+if [[ -z $DEPLOY_SCRIPT ]]; then script=${script//' --no-dev'/}; fi
 script=${script%%$'\n'"# ploi-preview"*}
 
 # A plain "git pull" breaks on force-pushed branches and would pull the source site's branch.

@@ -38,6 +38,7 @@ remove_preview() {
       die "Database $DB_NAME belongs to $linked_domain. Refusing to delete it."
     fi
     echo "Deleting database $DB_NAME"
+    delete_database_users "$(jq -r .id <<<"$database")"
     ploi DELETE "/servers/$SERVER/databases/$(jq -r .id <<<"$database")" >/dev/null
     REMOVED=true
   fi

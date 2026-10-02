@@ -103,7 +103,7 @@ jobs:
 ## How the preview is built
 
 - The `.env` starts from `env-file`. `APP_URL`, `APP_ENV=preview`, a new `APP_KEY` and the `DB_*` values are forced, then `env-overrides` are applied. The production `.env` is never read into the preview, so keep real credentials for mail, payment and other external services out of `env-file`.
-- The deploy script is copied from `source-site` with its domain replaced. `git pull origin …` becomes a fetch and hard reset of the pull request's branch, so force pushes work.
+- The deploy script is copied from `source-site` with its domain replaced. `git pull origin …` becomes a fetch and hard reset of the pull request's branch, so force pushes work. `--no-dev` is removed so seeders can use factories and Faker; a script passed as `deploy-script` is left as it is.
 - Every preview sends `X-Robots-Tag: noindex`.
 - Two branches whose names differ only in punctuation (`fix/login`, `fix-login`) share a slug. Use `subdomain-strategy: hash` if that can happen.
 

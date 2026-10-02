@@ -161,7 +161,27 @@ load_source_site() {
   SOURCE_JSON=$(find_site "$SOURCE_SITE")
   if [[ -z $SOURCE_JSON ]]; then die "Source site '$SOURCE_SITE' not found on the server."; fi
   SOURCE_ID=$(jq -r .id <<<"$SOURCE_JSON")
-  SOURCE_DATABASE=$(ploi GET "/servers/$SERVER/sites/$SOURCE_ID/env" | jq -r .content | sed -n 's/^DB_DATABASE=//p' | tr -d "\"'" | tail -n1)
+  source_env=$(site_env "$SOURCE_ID") || die "Could not read the .env of $SOURCE_SITE to protect its database."
+  SOURCE_DATABASE=$(sed -n 's/^DB_DATABASE=//p' <<<"$source_env" | tr -d "\"'" | tail -n1)
+  unset source_env
+}
+
+# site_env SITE_ID – the content of the site's .env, failing when Ploi returns none
+site_env() {
+  ploi GET "/servers/$SERVER/sites/$1/env" | jq -er '(.content // .data) | strings'
+}
+
+# delete_database_users DATABASE_ID – Ploi removes users asynchronously, so wait until they are gone
+delete_database_users() {
+  local users="/servers/$SERVER/databases/$1/users" id
+  for id in $(ploi GET "$users" | jq -r '.data[].id'); do
+    ploi DELETE "$users/$id" >/dev/null
+  done
+  wait_until 120 "the database users to be removed" database_has_no_users "$users"
+}
+
+database_has_no_users() {
+  ploi GET "$1" | jq -e '.data | length == 0' >/dev/null
 }
 
 # is_preview SITE_ID – a site only counts as a preview while the prefixed database is linked to it
