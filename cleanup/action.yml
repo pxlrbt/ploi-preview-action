@@ -1,0 +1,43 @@
+name: Ploi Preview – Cleanup
+description: Remove the Ploi preview of a closed pull request, or prune stale previews on a schedule.
+
+inputs:
+  api-token:
+    description: Ploi API token.
+    required: true
+  server:
+    description: Ploi server id or name.
+    required: true
+  domain:
+    description: Base domain of the previews, as passed to the deploy action.
+    required: true
+  subdomain-strategy:
+    description: Must match the deploy action.
+    default: branch
+  source-site:
+    description: Domain of the source site; it and its database are never deleted.
+  db-prefix:
+    description: Must match the deploy action. Databases without this prefix are never deleted.
+    default: preview_
+  max-age-days:
+    description: On scheduled runs, remove previews that were not deployed for this many days or whose pull request is closed. 0 disables pruning.
+    default: '0'
+  dry-run:
+    description: Only log the changes that would be made on Ploi.
+    default: 'false'
+
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      run: bash "$GITHUB_ACTION_PATH/../scripts/cleanup.sh"
+      env:
+        GH_TOKEN: ${{ github.token }}
+        API_TOKEN: ${{ inputs.api-token }}
+        SERVER: ${{ inputs.server }}
+        DOMAIN: ${{ inputs.domain }}
+        SUBDOMAIN_STRATEGY: ${{ inputs.subdomain-strategy }}
+        SOURCE_SITE: ${{ inputs.source-site }}
+        DB_PREFIX: ${{ inputs.db-prefix }}
+        MAX_AGE_DAYS: ${{ inputs.max-age-days }}
+        DRY_RUN: ${{ inputs.dry-run }}

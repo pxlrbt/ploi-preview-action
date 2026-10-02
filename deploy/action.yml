@@ -1,0 +1,99 @@
+name: Ploi Preview – Deploy
+description: Create or update a Laravel preview site on Ploi for the current pull request.
+
+inputs:
+  api-token:
+    description: Ploi API token.
+    required: true
+  server:
+    description: Ploi server id or name.
+    required: true
+  domain:
+    description: Base domain; previews are served from <slug>.<domain>.
+    required: true
+  subdomain-strategy:
+    description: "'branch' (kebab-cased branch name) or 'hash' (8 characters)."
+    default: branch
+  source-site:
+    description: Domain of the site whose deploy script, PHP version, queue workers and cronjobs are copied.
+  deploy-script:
+    description: Path to a deploy script in the repository; replaces the one of the source site.
+  env-file:
+    description: File in the repository that is the base of the preview's .env.
+    default: .env.dev
+  env-overrides:
+    description: Additional KEY=VALUE lines that win over env-file.
+  fresh-seed:
+    description: Run "php artisan migrate:fresh --seed --force" on the first deploy.
+    default: 'true'
+  fresh-on-update:
+    description: Also reset the database on every later deploy.
+    default: 'false'
+  post-deploy-script:
+    description: Bash that runs on the server at the end of every deploy, inside the site directory.
+  ssl:
+    description: "'letsencrypt' or 'none'."
+    default: letsencrypt
+  queues:
+    description: Copy the queue workers of the source site.
+    default: 'false'
+  scheduler:
+    description: Copy the cronjobs of the source site.
+    default: 'false'
+  basic-auth-user:
+    description: Protects the preview with basic auth when set together with basic-auth-password.
+  basic-auth-password:
+    description: Password for basic-auth-user.
+  label:
+    description: Only deploy pull requests that carry this label.
+  db-prefix:
+    description: Mandatory prefix of the database and its user. Must match the cleanup action.
+    default: preview_
+  comment-template:
+    description: Markdown for the pull request comment. Placeholders {url}, {branch}, {sha}, {database}.
+    default: |
+      **Preview:** {url}
+      Branch `{branch}` @ `{sha}`
+  dry-run:
+    description: Only log the changes that would be made on Ploi.
+    default: 'false'
+
+outputs:
+  url:
+    description: URL of the preview.
+    value: ${{ steps.deploy.outputs.url }}
+  site-id:
+    description: Ploi id of the preview site.
+    value: ${{ steps.deploy.outputs.site-id }}
+  database:
+    description: Name of the preview database.
+    value: ${{ steps.deploy.outputs.database }}
+
+runs:
+  using: composite
+  steps:
+    - id: deploy
+      shell: bash
+      run: bash "$GITHUB_ACTION_PATH/../scripts/deploy.sh"
+      env:
+        GH_TOKEN: ${{ github.token }}
+        API_TOKEN: ${{ inputs.api-token }}
+        SERVER: ${{ inputs.server }}
+        DOMAIN: ${{ inputs.domain }}
+        SUBDOMAIN_STRATEGY: ${{ inputs.subdomain-strategy }}
+        SOURCE_SITE: ${{ inputs.source-site }}
+        DEPLOY_SCRIPT: ${{ inputs.deploy-script }}
+        ENV_FILE: ${{ inputs.env-file }}
+        ENV_OVERRIDES: ${{ inputs.env-overrides }}
+        FRESH_SEED: ${{ inputs.fresh-seed }}
+        FRESH_ON_UPDATE: ${{ inputs.fresh-on-update }}
+        POST_DEPLOY_SCRIPT: ${{ inputs.post-deploy-script }}
+        SSL: ${{ inputs.ssl }}
+        QUEUES: ${{ inputs.queues }}
+        SCHEDULER: ${{ inputs.scheduler }}
+        BASIC_AUTH_USER: ${{ inputs.basic-auth-user }}
+        BASIC_AUTH_PASSWORD: ${{ inputs.basic-auth-password }}
+        LABEL: ${{ inputs.label }}
+        DB_PREFIX: ${{ inputs.db-prefix }}
+        COMMENT_TEMPLATE: ${{ inputs.comment-template }}
+        DRY_RUN: ${{ inputs.dry-run }}

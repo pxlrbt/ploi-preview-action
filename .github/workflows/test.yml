@@ -1,0 +1,11 @@
+name: Test
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: bash scripts/test.sh
+      - run: bash -n scripts/deploy.sh && bash -n scripts/cleanup.sh && bash -n setup.sh
