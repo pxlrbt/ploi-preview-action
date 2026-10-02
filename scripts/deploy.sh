@@ -73,6 +73,9 @@ if [[ -n $site ]]; then
   if ! is_preview "$SITE_ID"; then
     die "$PREVIEW_DOMAIN already exists and is not a preview created by this action."
   fi
+  if [[ $(jq -r .has_repository <<<"$site") == true ]] && ! site_belongs_to_repository "$SITE_ID"; then
+    die "$PREVIEW_DOMAIN is a preview of another repository. Use a domain and db-prefix of your own."
+  fi
 else
   if [[ -n $(find_database "$DB_NAME") ]]; then
     die "Database $DB_NAME exists without its site. Run the cleanup action for this branch first."

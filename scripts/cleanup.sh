@@ -77,8 +77,7 @@ for site in "${sites[@]}"; do
   if [[ $domain == "$SOURCE_SITE" || ! $candidate =~ ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$ ]]; then continue; fi
   preview_names "$candidate"
   if ! is_preview "$site_id"; then continue; fi
-  repository=$(ploi GET "/servers/$SERVER/sites/$site_id/repository" | jq -r '.data.repository | "\(.user)/\(.name)", .name' | tr 'A-Z' 'a-z')
-  if ! grep -qxF "$(tr 'A-Z' 'a-z' <<<"$GITHUB_REPOSITORY")" <<<"$repository"; then continue; fi
+  if ! site_belongs_to_repository "$site_id"; then continue; fi
 
   pull_request=$(awk -v slug="$candidate" '$1 == slug { print $2; exit }' <<<"$open_previews")
   last_deploy=$(jq -r '.last_deploy_at // .created_at' <<<"$site")

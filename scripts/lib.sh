@@ -170,6 +170,13 @@ is_preview() {
     | jq -e --arg name "$DB_NAME" --argjson site "$1" 'any(.[]; .name == $name and .site.id == $site)' >/dev/null
 }
 
+# site_belongs_to_repository SITE_ID – true when the site was installed from this GitHub repository
+site_belongs_to_repository() {
+  ploi GET "/servers/$SERVER/sites/$1/repository" \
+    | jq -r '.data.repository | "\(.user)/\(.name)", .name' | tr 'A-Z' 'a-z' \
+    | grep -qxF "$(tr 'A-Z' 'a-z' <<<"$GITHUB_REPOSITORY")"
+}
+
 # wait_until SECONDS DESCRIPTION COMMAND... – poll every 5 seconds until COMMAND succeeds
 wait_until() {
   local deadline=$((SECONDS + $1)) description=$2
