@@ -111,14 +111,12 @@ current_env_value() {
   sed -n "s/^$1=//p" <<<"$current_env" | tail -n1
 }
 
-FIRST_DEPLOY=false
 if [[ $(current_env_value DB_DATABASE) == "$DB_NAME" ]]; then
   DB_PASSWORD=$(current_env_value DB_PASSWORD)
   APP_KEY=$(current_env_value APP_KEY)
   echo "::add-mask::$DB_PASSWORD"
   echo "::add-mask::$APP_KEY"
 else
-  FIRST_DEPLOY=true
   DB_PASSWORD=$(openssl rand -hex 24)
   APP_KEY="base64:$(openssl rand -base64 32)"
   echo "::add-mask::$DB_PASSWORD"
@@ -188,7 +186,10 @@ while IFS= read -r line; do
 done <<<"$script"
 deploy_script+="# ploi-preview"$'\n'"cd /home/$SYSTEM_USER/$PREVIEW_DOMAIN"$'\n'
 if [[ $FRESH_SEED == true ]]; then
-  deploy_script+="if [ \"\${PREVIEW_FRESH:-}\" = \"1\" ]; then php$PHP_VERSION artisan migrate:fresh --seed --force; fi"$'\n'
+  # The marker file makes "first deploy" mean "until the database was seeded successfully once".
+  deploy_script+="if [ \"\${PREVIEW_FRESH:-}\" = \"1\" ] || [ ! -f storage/app/.preview-seeded ]; then"$'\n'
+  deploy_script+="  php$PHP_VERSION artisan migrate:fresh --seed --force && touch storage/app/.preview-seeded || exit 1"$'\n'
+  deploy_script+="fi"$'\n'
 fi
 deploy_script+="$POST_DEPLOY_SCRIPT"$'\n'
 ploi PATCH "$SITE/deploy/script" "$(jq -n --arg script "$deploy_script" '{deploy_script: $script}')" >/dev/null
@@ -196,7 +197,7 @@ ploi PATCH "$SITE/deploy/script" "$(jq -n --arg script "$deploy_script" '{deploy
 # --- Deploy ------------------------------------------------------------------
 
 preview_fresh=0
-if [[ $FRESH_SEED == true && ($FIRST_DEPLOY == true || $FRESH_ON_UPDATE == true) ]]; then preview_fresh=1; fi
+if [[ $FRESH_SEED == true && $FRESH_ON_UPDATE == true ]]; then preview_fresh=1; fi
 
 echo "Deploying $BRANCH to $PREVIEW_DOMAIN"
 LAST_DEPLOY_AT=$(ploi GET "$SITE" | jq -r .data.last_deploy_at)

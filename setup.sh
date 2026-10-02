@@ -116,6 +116,8 @@ choose PLOI_SOURCE_SITE "Source site (deploy script, queue workers, cronjobs)" "
 
 ask PREVIEW_DOMAIN "Base domain of the previews (<branch>.<domain>)" "preview.$PLOI_SOURCE_SITE"
 ask SUBDOMAIN_STRATEGY "Subdomain from 'branch' name or 'hash'" branch
+repository_name=$(tr 'A-Z' 'a-z' <<<"${REPOSITORY#*/}" | sed -E 's/[^a-z0-9]+/_/g' | cut -c1-11)
+ask DB_PREFIX "Prefix of the preview databases (3-20 characters, unique per project)" "preview_${repository_name}_"
 ask ENV_FILE "Env file in the repository" .env.dev
 ask DEPLOY_SCRIPT "Own deploy script in the repository (empty = copy the source site's)" ""
 ask SSL "SSL: 'letsencrypt' or 'none'" letsencrypt
@@ -164,6 +166,7 @@ connection=$(
   input server '${{ vars.PLOI_SERVER }}'
   input domain '${{ vars.PREVIEW_DOMAIN }}'
   input source-site '${{ vars.PLOI_SOURCE_SITE }}'
+  input db-prefix "$DB_PREFIX"
   if [[ $SUBDOMAIN_STRATEGY != branch ]]; then input subdomain-strategy "$SUBDOMAIN_STRATEGY"; fi
 )
 event_types="opened, synchronize, reopened, closed"
