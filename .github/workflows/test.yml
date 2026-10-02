@@ -8,4 +8,8 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - run: bash scripts/test.sh
-      - run: bash -n scripts/deploy.sh && bash -n scripts/cleanup.sh && bash -n setup.sh
+      - name: Check the syntax of every script
+        run: |
+          for script in setup.sh scripts/*.sh scripts/lib/*.sh; do
+            bash -n "$script"
+          done

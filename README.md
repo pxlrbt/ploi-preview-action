@@ -122,6 +122,44 @@ Previews often live next to production sites, so several independent checks guar
 - Ploi's API cannot assign an existing wildcard certificate to a new site, so each preview requests its own Let's Encrypt certificate (mind the limit of 50 certificates per registered domain and week).
 - MySQL only.
 
+## Reading the code
+
+Everything is Bash. Each script starts with a `main()` function that lists its steps in order; every step is a small function further down.
+
+| File | What it does | Read it for |
+| --- | --- | --- |
+| `scripts/deploy.sh` | The steps of a deploy, top to bottom | the overall flow |
+| `scripts/cleanup.sh` | Removing one preview, and the nightly prune | everything that deletes |
+| `scripts/lib/names.sh` | Branch name → preview domain and database name | the safety checks on names |
+| `scripts/lib/files.sh` | Builds the `.env` and the deploy script | what ends up on the server |
+| `scripts/lib/ploi.sh` | One function per Ploi API call | which API calls are made |
+| `scripts/lib/github.sh` | Pull request comment and deployment status | what is written to GitHub |
+| `scripts/lib/actions.sh` | Messages, inputs, waiting | |
+| `scripts/test.sh` | Tests for `names.sh` and `files.sh` | examples of inputs and results |
+| `setup.sh` | The interactive setup | |
+
+A suggested order for a review: `deploy.sh`, `cleanup.sh`, then `names.sh` and `files.sh` next to `test.sh`, then `ploi.sh`.
+
+The Bash constructs the scripts use:
+
+| Construct | Meaning |
+| --- | --- |
+| `set -euo pipefail` | Stop the script as soon as any command fails |
+| `name=$(command)` | Run the command and store what it prints |
+| `"$1"`, `"$2"`, `"$@"` | The first, second, all arguments of a function |
+| `local name` | The variable only exists inside the function; names in CAPITALS are shared by the whole script |
+| `[[ -z $x ]]`, `[[ -n $x ]]` | `$x` is empty, `$x` is not empty |
+| `[[ -f $x ]]` | The file `$x` exists |
+| `${x:-default}` | `$x`, or `default` when it is empty |
+| `${#x}` | The length of `$x` |
+| `${x//a/b}` | `$x` with every `a` replaced by `b` |
+| `${x%suffix}`, `${x#prefix}` | `$x` without that suffix or prefix |
+| `command <<<"$x"` | Run the command with `$x` as its input |
+| `a \| b` | Feed the output of `a` into `b` |
+| `command >/dev/null` | Run the command and discard what it prints |
+| `a \|\| b` | Run `b` only when `a` failed |
+| `jq` | Reads and builds JSON; `jq -r .data.id` prints the field `data.id` |
+
 ## Development
 
 ```bash
